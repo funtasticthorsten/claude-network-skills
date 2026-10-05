@@ -1,0 +1,4 @@
+# MCP wrapper dependencies — runs on the AGENT host, not in the LXC.
+# Versions verified 2026-10-05 against PyPI — review on upgrade.
+fastmcp~=4.0
+httpx~=0.28

@@ -1,0 +1,20 @@
+# SearXNG settings for the jobsearch stack (private instance, internal network only).
+# Reference: https://docs.searxng.org/admin/settings/settings.html
+use_default_settings: true
+
+server:
+  # Private, LAN-only instance behind the gateway. The limiter would 403 the
+  # gateway's own JSON calls. If you ever publish this instance for interactive
+  # use, set limiter: true and passlist the gateway's IP (botdetection.ip_lists).
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  # secret_key is injected via SEARXNG_SECRET env var by the Docker image.
+
+search:
+  # json format is REQUIRED for the gateway's searxng connector.
+  # Disabling it is the #1 deployment failure (silent 403 on ?format=json).
+  formats:
+    - html
+    - json
+  default_lang: "de-DE"

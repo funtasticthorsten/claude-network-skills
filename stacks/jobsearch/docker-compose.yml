@@ -1,0 +1,60 @@
+name: jobsearch
+
+services:
+  searxng:
+    # Pin verified 2026-10-05 against hub.docker.com/r/searxng/searxng/tags.
+    # On upgrade: check current tags, bump deliberately, never `latest`.
+    image: searxng/searxng:2026.10.4-d48c4b555
+    container_name: jobsearch-searxng
+    volumes:
+      - ./searxng:/etc/searxng:ro
+    environment:
+      - SEARXNG_SECRET=${SEARXNG_SECRET}
+    # NO ports block: reachable only inside the compose network, by the gateway.
+    # For manual debugging from the LAN, add a ports entry temporarily.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    mem_limit: 512m
+
+  jobsearch-gateway:
+    build: ./gateway
+    image: local/jobsearch-gateway:0.1.0
+    container_name: jobsearch-gateway
+    env_file: .env
+    environment:
+      - JOBSEARCH_SEARXNG_URL=http://searxng:8080
+      - JOBSEARCH_DATABASE_PATH=/data/jobs.db
+    ports:
+      # LXC is internal-network-only. If the LXC is multi-homed, bind a
+      # specific IP instead: "192.168.30.10:8080:8080"
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    depends_on:
+      searxng:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    mem_limit: 512m
+
+  # Tier 3 fallback — planned v2, disabled by the `scrape` profile.
+  # Requires Scrapling StealthyFetcher (Chromium-based, ~500 MB+ image).
+  # See gateway/jobsearch_gateway/sources/scrape.py and README §Roadmap.
+  #
+  # scrape-worker:
+  #   build:
+  #     context: ./gateway
+  #     dockerfile: Dockerfile.scrape   # v2
+  #   profiles: ["scrape"]
+
+networks:
+  default:
+    driver: bridge

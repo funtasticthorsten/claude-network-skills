@@ -4,7 +4,7 @@
 
 Stop getting generic networking advice from AI. These skills load structured, practitioner-level knowledge directly into Claude Code — specific commands, ordered diagnostic sequences, real config patterns, and anti-patterns from production environments.
 
-9 skills + 4 agents covering BGP, Cisco IOS, interface health, SSH automation, config validation, enterprise network design, and a full homelab track.
+9 skills + 4 agents covering BGP, Cisco IOS, interface health, SSH automation, config validation, enterprise network design, and a full homelab track — plus a growing set of self-hosted deployable stacks (first: an agent-facing job-search gateway).
 
 Compatible with [Claude Code](https://claude.ai/code), Cursor, and any Claude Code-compatible harness.
 
@@ -175,6 +175,20 @@ Home network design from hardware inventory and goals. Takes your specific devic
 
 ```
 use the homelab-architect agent — I have a UniFi Dream Machine, Raspberry Pi 4, and Synology NAS. I want VLANs, Pi-hole, and a guest network
+```
+
+---
+
+## Self-hosted stacks
+
+Deployable infrastructure kits — not skills, but ready-to-copy Docker setups for your homelab. They live in `stacks/` and don't install into `~/.claude/`.
+
+#### `stacks/jobsearch`
+Agent-facing job-search gateway: Bundesagentur für Arbeit API + self-hosted SearXNG behind one authenticated REST API and an MCP server (Hermes Agent, Claude Code, plain HTTP agents). Tiered bot-detection avoidance (official APIs → meta-search → stealth scrape fallback), SQLite persistence, runs in a 2 GB Proxmox LXC.
+
+```
+# Test prompt
+register stacks/jobsearch as an MCP server and search for Netzwerkadministrator jobs in München
 ```
 
 ---
