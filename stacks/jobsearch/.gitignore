@@ -1,6 +1,0 @@
-# Never commit secrets or runtime data
-.env
-data/
-__pycache__/
-*.pyc
-*.db
