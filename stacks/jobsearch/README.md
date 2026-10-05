@@ -26,11 +26,11 @@ without a paid search API and without behaving like a bot.
 
 There is no "trick the WAF" layer — the stack is designed so it rarely has to:
 
-| Tier | Source | Why it doesn't trip bot detection |
-|------|--------|----------------------------------|
-| 1 | Bundesagentur für Arbeit jobsuche API | Official public API. Germany's largest board, no registration, no rate walls. |
-| 2 | Self-hosted SearXNG | JSON meta-search; rotates upstream engines and spreads requests. Your instance, your rate. |
-| 3 | Scrape fallback (v2, stub) | Scrapling `StealthyFetcher` for the few boards without an API — deliberately not built yet (see Roadmap). |
+| Tier | Source                                | Why it doesn't trip bot detection                                                                         |
+| ---- | ------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 1    | Bundesagentur für Arbeit jobsuche API | Official public API. Germany's largest board, no registration, no rate walls.                             |
+| 2    | Self-hosted SearXNG                   | JSON meta-search; rotates upstream engines and spreads requests. Your instance, your rate.                |
+| 3    | Scrape fallback (v2, stub)            | Scrapling `StealthyFetcher` for the few boards without an API — deliberately not built yet (see Roadmap). |
 
 Politeness is part of the design: per-source throttles (1 req/s to the BA, 
 2 req/s to SearXNG), 60-min search cache, 24-h details cache, honest
@@ -128,13 +128,13 @@ API directly with its HTTP tool.
 
 ## Configuration (`.env`)
 
-| Var | Purpose |
-|-----|---------|
-| `JOBSEARCH_API_TOKEN` | Bearer token for the gateway |
-| `SEARXNG_SECRET` | SearXNG instance secret |
-| `JOBSEARCH_SOURCES` | Enabled sources (default `bundesagentur,searxng`) |
-| `SEARXNG_SITE_FILTERS` | Optional: restrict searxng to specific boards (`site:` OR-groups) |
-| `JOBSEARCH_EURES_API_KEY` | Optional: enables the (stub) eures connector |
+| Var                       | Purpose                                                           |
+| ------------------------- | ----------------------------------------------------------------- |
+| `JOBSEARCH_API_TOKEN`     | Bearer token for the gateway                                      |
+| `SEARXNG_SECRET`          | SearXNG instance secret                                           |
+| `JOBSEARCH_SOURCES`       | Enabled sources (default `bundesagentur,searxng` )                |
+| `SEARXNG_SITE_FILTERS`    | Optional: restrict searxng to specific boards (`site:` OR-groups) |
+| `JOBSEARCH_EURES_API_KEY` | Optional: enables the (stub) eures connector                      |
 
 ## Adding a source
 
@@ -163,3 +163,39 @@ The BA API key is the public client key documented by the
 The API is unofficial (reverse-engineered from the official app) and can
 change without notice — `verify.sh` catches that on deploy. Keep the
 throttles; this stack is for personal job search, not bulk scraping.
+
+
+#####################################################################################
+
+
+Fertig. Das Setup-Kit stacks/jobsearch/ ist komplett gebaut, getestet und committet (887a649).
+
+Zusammenfassung — die Antworten auf deine Fragen
+
+„Beste Möglichkeit ohne als Bot erkannt zu werden" — gestaffelt statt getrickst:
+1. Tier 1: Offizielle APIs — Bundesagentur-für-Arbeit-Jobsuche-API (kostenlos, keine Registrierung) hat überhaupt kein Bot-Problem und deckt Deutschlands größtes Board ab
+2. Tier 2: Self-hosted SearXNG — JSON-Metasuche, rotiert die Upstream-Engines
+3. Tier 3: Scraping-Fallback (v2-Stub) — Scrapling StealthyFetcher nur für Boards ohne API, bewusst zurückgestellt (Chromium würde das 2-GB-Budget sprengen)
+
+„Am schnellsten, self-hosted, kostenlos" — FastAPI-Gateway + SQLite + SearXNG in einem Docker-Compose-Stack, ~1 h Deploy, nur Kosten fürs LLM. Politeness eingebaut: 1 req/s zur BA, 2 req/s zu SearXNG, Caches (60 min Suche / 24 h Details).
+
+„Optimales Proxmox-Setup mit Agenten-Anbindung" — unprivilegierter LXC (2 GB, nesting+keyctl, Gotchas dokumentiert), Gateway auf Port 8080 nur im LAN. Agenten sprechen ihn dreifach an: MCP-Wrapper (search_jobs, get_job, list_sources — identisch für Hermes und Claude Code registrierbar) oder direkt REST.
+
+Live verifiziert (nicht nur Syntax)
+
+- BA-API-Feld-Mapping aus echten v6-Antworten gebaut — 5 normalisierte Jobs, Details-Endpoint mit 1382-Zeichen-Beschreibung
+- Komplette API gegen laufendes uvicorn getestet: 401-Auth ✓, Fan-out ✓, Dedup (10→5) ✓, Graceful Degradation (SearXNG down → trotzdem 200) ✓, Details-Cache ✓, Persistenz ✓, Source-Filterung ✓
+- Der E2E-Test fing einen echten Bug (zip-Unpacking in sources) plus drei Designfehler (Env-Prefix, Healthcheck-Polling der BA, /data-Rechte) — alle gefixt
+
+Deine nächsten Schritte
+
+1. deploy/proxmox-lxc.md auf deinem Proxmox durchgehen → LXC erstellen, Docker installieren, docker compose up -d --build
+2. ./deploy/verify.sh http://<lxc-ip>:8080 <TOKEN> — einmal im LXC, einmal von einem anderen Rechner
+3. MCP-Server bei Hermes und/oder Claude Code registrieren (Snippets im Kit-README) und testen: "search_jobs für Netzwerkadministrator in München, zeige die ersten 5"
+
+Zwei ehrliche Einschränkungen: Die BA-API ist inoffiziell (reverse-engineered, kann sich ändern — verify.sh Check 3 fängt das ab), und der SearXNG-Scrape-Fallback für Boards wie StepStone ist Roadmap, nicht ausgebaut. Der Commit ist lokal auf main — sag Bescheid, wenn ich pushen soll.
+
+✻ Cooked for 17m 7s · done 3:53 AM
+
+※ recap: Ziel: selbstgehostete Stellensuche für Agenten (Hermes/Claude Code) auf Proxmox. Das Kit `stacks/jobsearch/` ist fertig gebaut, live getestet und als Commit 887a649 lokal committet. Nächster Schritt: Deployment auf deinem Proxmox-LXC gemäß `deploy/proxmox-lxc.md`.
+
